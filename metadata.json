@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>天气叠叠乐 - Weather Merge</title>
+    <style>
+        :root {
+            --bg-color: #e0f2fe;
+            --grid-bg: rgba(255, 255, 255, 0.3);
+            --cell-bg: rgba(255, 255, 255, 0.5);
+            --text-color: #0369a1;
+            --accent-color: #0ea5e9;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            touch-action: none;
+        }
+
+        body {
+            background: linear-gradient(135deg, #bae6fd 0%, #e0f2fe 100%);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-color);
+            overflow: hidden;
+        }
+
+        .header {
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .title-area h1 {
+            font-size: 28px;
+            font-weight: bold;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .score-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        .score-box {
+            background: var(--grid-bg);
+            padding: 5px 15px;
+            border-radius: 10px;
+            text-align: center;
+            min-width: 80px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.4);
+        }
+
+        .score-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            opacity: 0.8;
+        }
+
+        .score-value {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .controls {
+            width: 100%;
+            max-width: 400px;
+            padding: 0 20px 20px;
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        button {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.1s, background 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        .game-container {
+            position: relative;
+            width: 340px;
+            height: 340px;
+            background: var(--grid-bg);
+            border-radius: 15px;
+            padding: 10px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 10px;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255,255,255,0.5);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        }
+
+        .grid-cell {
+            width: 72.5px;
+            height: 72.5px;
+            background: var(--cell-bg);
+            border-radius: 10px;
+        }
+
+        .tile {
+            position: absolute;
+            width: 72.5px;
+            height: 72.5px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+            transition: all 0.15s ease-in-out;
+            z-index: 10;
+            background: white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .tile-1 { background: #f0f9ff; }
+        .tile-2 { background: #e0f2fe; }
+        .tile-3 { background: #bae6fd; }
+        .tile-4 { background: #7dd3fc; }
+        .tile-5 { background: #38bdf8; }
+        .tile-6 { background: #0ea5e9; color: white; }
+        .tile-7 { background: #0284c7; color: white; }
+        .tile-8 { background: linear-gradient(45deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff); color: white; }
+
+        .message-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(5px);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 15px;
+            z-index: 100;
+        }
+
+        .message-overlay h2 {
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+
+        .instructions {
+            margin-top: 30px;
+            font-size: 14px;
+            opacity: 0.7;
+            text-align: center;
+        }
+
+        @media (max-width: 400px) {
+            .game-container {
+                width: 300px;
+                height: 300px;
+            }
+            .grid-cell, .tile {
+                width: 62.5px;
+                height: 62.5px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="title-area">
+            <h1>天气叠叠乐</h1>
+        </div>
+        <div class="score-container">
+            <div class="score-box">
+                <div class="score-label">当前分数</div>
+                <div id="score" class="score-value">0</div>
+            </div>
+            <div class="score-box">
+                <div class="score-label">最高分数</div>
+                <div id="best-score" class="score-value">0</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button onclick="game.restart()">新游戏</button>
+    </div>
+
+    <div class="game-container" id="game-container">
+        <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
+        <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
+        <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
+        <div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div><div class="grid-cell"></div>
+        
+        <div id="message-overlay" class="message-overlay">
+            <h2 id="message-text">游戏结束</h2>
+            <button onclick="game.restart()">再试一次</button>
+        </div>
+    </div>
+
+    <div class="instructions">
+        使用方向键或滑动屏幕来合并天气<br>
+        ☁️ + ☁️ = ☁️☁️ ... 最终合成 🌈
+    </div>
+
+    <script>
+        const EMOJIS = {
+            1: "☁️",
+            2: "☁️☁️",
+            3: "🌧️",
+            4: "🌧️🌧️",
+            5: "⛈️",
+            6: "🌪️",
+            7: "🌀",
+            8: "🌈"
+        };
+
+        class WeatherGame {
+            constructor() {
+                this.container = document.getElementById('game-container');
+                this.scoreDisplay = document.getElementById('score');
+                this.bestScoreDisplay = document.getElementById('best-score');
+                this.overlay = document.getElementById('message-overlay');
+                this.messageText = document.getElementById('message-text');
+                
+                this.size = 4;
+                this.grid = [];
+                this.score = 0;
+                this.bestScore = parseInt(localStorage.getItem('weather_high_score')) || 0;
+                this.hasWon = false;
+                this.isGameOver = false;
+
+                this.init();
+                this.setupInput();
+            }
+
+            init() {
+                this.bestScoreDisplay.innerText = this.bestScore;
+                this.restart();
+            }
+
+            restart() {
+                this.grid = Array(this.size).fill().map(() => Array(this.size).fill(0));
+                this.score = 0;
+                this.hasWon = false;
+                this.isGameOver = false;
+                this.updateScore(0);
+                this.overlay.style.display = 'none';
+                
+                const tiles = this.container.querySelectorAll('.tile');
+                tiles.forEach(t => t.remove());
+
+                this.addRandomTile();
+                this.addRandomTile();
+                this.render();
+            }
+
+            addRandomTile() {
+                const emptyCells = [];
+                for (let r = 0; r < this.size; r++) {
+                    for (let c = 0; c < this.size; c++) {
+                        if (this.grid[r][c] === 0) emptyCells.push({r, c});
+                    }
+                }
+                if (emptyCells.length > 0) {
+                    const {r, c} = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+                    this.grid[r][c] = 1;
+                    return true;
+                }
+                return false;
+            }
+
+            updateScore(points) {
+                this.score += points;
+                this.scoreDisplay.innerText = this.score;
+                if (this.score > this.bestScore) {
+                    this.bestScore = this.score;
+                    this.bestScoreDisplay.innerText = this.bestScore;
+                    localStorage.setItem('weather_high_score', this.bestScore);
+                }
+            }
+
+            render() {
+                const tiles = this.container.querySelectorAll('.tile');
+                tiles.forEach(t => t.remove());
+
+                for (let r = 0; r < this.size; r++) {
+                    for (let c = 0; c < this.size; c++) {
+                        if (this.grid[r][c] > 0) {
+                            this.createTileElement(r, c, this.grid[r][c]);
+                        }
+                    }
+                }
+            }
+
+            createTileElement(r, c, value) {
+                const tile = document.createElement('div');
+                tile.className = `tile tile-${value}`;
+                tile.innerText = EMOJIS[value] || value;
+                
+                const cellSize = this.container.offsetWidth > 300 ? 72.5 : 62.5;
+                const gap = 10;
+                const top = 10 + r * (cellSize + gap);
+                const left = 10 + c * (cellSize + gap);
+                
+                tile.style.top = `${top}px`;
+                tile.style.left = `${left}px`;
+                
+                this.container.appendChild(tile);
+            }
+
+            move(direction) {
+                if (this.isGameOver) return;
+
+                let moved = false;
+                const newGrid = JSON.parse(JSON.stringify(this.grid));
+
+                for (let i = 0; i < direction; i++) {
+                    this.rotateGrid(newGrid);
+                }
+
+                for (let r = 0; r < this.size; r++) {
+                    const row = newGrid[r].filter(v => v !== 0);
+                    for (let i = 0; i < row.length - 1; i++) {
+                        if (row[i] === row[i+1] && row[i] < 8) {
+                            row[i]++;
+                            const points = Math.pow(row[i], 2) * 10;
+                            this.updateScore(points);
+                            row.splice(i + 1, 1);
+                            moved = true;
+                            
+                            if (row[i] === 8 && !this.hasWon) {
+                                this.hasWon = true;
+                                setTimeout(() => alert("你合成彩虹了！恭喜！"), 100);
+                            }
+                        }
+                    }
+                    while (row.length < this.size) row.push(0);
+                    if (JSON.stringify(newGrid[r]) !== JSON.stringify(row)) moved = true;
+                    newGrid[r] = row;
+                }
+
+                for (let i = 0; i < (4 - direction) % 4; i++) {
+                    this.rotateGrid(newGrid);
+                }
+
+                if (moved) {
+                    this.grid = newGrid;
+                    this.addRandomTile();
+                    this.render();
+                    if (!this.canMove()) {
+                        this.gameOver();
+                    }
+                }
+            }
+
+            rotateGrid(grid) {
+                const prevGrid = JSON.parse(JSON.stringify(grid));
+                for (let r = 0; r < this.size; r++) {
+                    for (let c = 0; c < this.size; c++) {
+                        grid[c][this.size - 1 - r] = prevGrid[r][c];
+                    }
+                }
+            }
+
+            canMove() {
+                for (let r = 0; r < this.size; r++) {
+                    for (let c = 0; c < this.size; c++) {
+                        if (this.grid[r][c] === 0) return true;
+                        if (c < this.size - 1 && this.grid[r][c] === this.grid[r][c+1] && this.grid[r][c] < 8) return true;
+                        if (r < this.size - 1 && this.grid[r][c] === this.grid[r+1][c] && this.grid[r][c] < 8) return true;
+                    }
+                }
+                return false;
+            }
+
+            gameOver() {
+                this.isGameOver = true;
+                this.messageText.innerText = "游戏结束";
+                this.overlay.style.display = 'flex';
+            }
+
+            setupInput() {
+                window.addEventListener('keydown', (e) => {
+                    switch(e.key) {
+                        case 'ArrowLeft': this.move(0); break;
+                        case 'ArrowUp': this.move(3); break;
+                        case 'ArrowRight': this.move(2); break;
+                        case 'ArrowDown': this.move(1); break;
+                    }
+                });
+
+                let touchStartX, touchStartY;
+                this.container.addEventListener('touchstart', (e) => {
+                    touchStartX = e.touches[0].clientX;
+                    touchStartY = e.touches[0].clientY;
+                }, {passive: true});
+
+                this.container.addEventListener('touchend', (e) => {
+                    if (!touchStartX || !touchStartY) return;
+                    
+                    const dx = e.changedTouches[0].clientX - touchStartX;
+                    const dy = e.changedTouches[0].clientY - touchStartY;
+                    const absDx = Math.abs(dx);
+                    const absDy = Math.abs(dy);
+
+                    if (Math.max(absDx, absDy) > 30) {
+                        if (absDx > absDy) {
+                            this.move(dx > 0 ? 2 : 0);
+                        } else {
+                            this.move(dy > 0 ? 1 : 3);
+                        }
+                    }
+                    touchStartX = null;
+                    touchStartY = null;
+                }, {passive: true});
+            }
+        }
+
+        const game = new WeatherGame();
+    </script>
+</body>
+</html>
+
